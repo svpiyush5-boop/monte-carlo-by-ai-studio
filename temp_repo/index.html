@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retirement Planner — Seed Investments</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"
+        crossorigin="anonymous"></script>
+
+    <!-- PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous"></script>
+
+    <!-- Design Tokens & Components -->
+    <link rel="stylesheet" href="v3.css">
+
+    <style>
+        :root {
+            --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-body: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --seed-navy: #0B2545;
+            --seed-navy-soft: #1A3A5C;
+            --seed-teal: #0D9488;
+            --seed-teal-soft: #CCFBF1;
+            --seed-amber: #D97706;
+            --seed-amber-soft: #FEF3C7;
+            --seed-red: #DC2626;
+            --seed-red-soft: #FEE2E2;
+            --seed-gold: #B8860B;
+            --seed-blue: #2563EB;
+            --seed-blue-soft: #EFF6FF;
+
+            --n-0: #fff;
+            --n-50: #F8FAFC;
+            --n-100: #F1F5F9;
+            --n-150: #E9EFF5;
+            --n-200: #E2E8F0;
+            --n-300: #CBD5E1;
+            --n-400: #94A3B8;
+            --n-500: #64748B;
+            --n-600: #475569;
+            --n-700: #334155;
+            --n-800: #1E293B;
+            --n-900: #0F172A;
+
+            --bg-page: var(--n-50);
+            --bg-card: var(--n-0);
+            --bg-surface: var(--n-100);
+            --bg-sidebar: var(--n-0);
+            --text-primary: var(--n-900);
+            --text-secondary: var(--n-600);
+            --text-muted: var(--n-400);
+            --border-subtle: var(--n-150);
+            --border-default: var(--n-200);
+            --border-strong: var(--n-300);
+
+            --shadow-xs: 0 1px 2px rgba(15, 23, 42, .04);
+            --shadow-sm: 0 2px 8px rgba(15, 23, 42, .06), 0 1px 3px rgba(15, 23, 42, .04);
+            --shadow-md: 0 8px 24px rgba(15, 23, 42, .08), 0 2px 8px rgba(15, 23, 42, .04);
+            --shadow-lg: 0 20px 40px rgba(15, 23, 42, .1), 0 4px 12px rgba(15, 23, 42, .06);
+
+            --radius-xs: 4px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+
+            --sidebar-w: 340px;
+            --sidebar-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-page: #0A0F1E;
+            --bg-card: #111827;
+            --bg-surface: #1A2235;
+            --bg-sidebar: #111827;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #475569;
+            --border-subtle: rgba(255, 255, 255, .04);
+            --border-default: rgba(255, 255, 255, .08);
+            --border-strong: rgba(255, 255, 255, .14);
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, .3);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, .4);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, .5);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, .6);
+            --seed-teal-soft: rgba(13, 148, 136, .15);
+            --seed-amber-soft: rgba(217, 119, 6, .15);
+            --seed-red-soft: rgba(220, 38, 38, .15);
+            --seed-blue-soft: rgba(37, 99, 235, .15);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-shell" id="app-shell">
+
+        <!-- ── Topbar ── -->
+        <header class="app-topbar">
+            <div class="topbar-inner">
+                <div class="brand">
+                    <div class="brand-mark">S</div>
+                    <div>
+                        <span class="brand-name">Seed Investments</span>
+                        <span class="brand-tag">AMFI-Registered &middot; ARN: XXXXXXX</span>
+                    </div>
+                </div>
+                <nav class="topbar-nav">
+                    <a href="#">Home</a>
+                    <a href="#">Services</a>
+                    <a href="#" class="active">Tools</a>
+                </nav>
+                <div class="topbar-actions">
+                    <button class="icon-btn" id="theme-toggle" title="Toggle dark mode">&#9790;</button>
+                    <a href="#" class="btn-cta">Book Clarity Session &rarr;</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── Sidebar ── -->
+        <aside class="app-sidebar" id="sidebar">
+
+            <!-- Collapse toggle -->
+            <div class="sidebar-toggle-strip">
+                <button class="sidebar-toggle-btn" id="sidebar-toggle" title="Collapse sidebar">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M9 2L4 7l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Collapsed icon rail (shown when collapsed) -->
+            <div class="sidebar-icon-rail" id="sidebar-icon-rail">
+                <button class="rail-icon-btn" onclick="expandSidebar()" title="Expand">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+                <button class="rail-icon-btn" onclick="window.runSimulation()" title="Run simulation">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Scrollable form area -->
+            <div class="sidebar-scroll" id="sidebar-scroll">
+
+                <div class="sidebar-header">
+                    <h1>Retirement Planner</h1>
+                    <p>10,000 Monte Carlo simulations</p>
+                </div>
+
+                <form id="retirement-form" novalidate onsubmit="event.preventDefault(); window.runSimulation();"
+                    class="sidebar-form">
+
+                    <!-- 1 About You -->
+                    <div class="accordion-section open" data-section="1">
+                        <button type="button" class="accordion-header" aria-expanded="true">
+                            <div class="accordion-label">
+                                <span class="section-num">1</span>
+                                <span class="section-title">About You</span>
+                            </div>
+                            <div class="accordion-right">
+                                <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="input-field">
+                                <label class="field-label" for="clientName">Client Name</label>
+                                <input type="text" id="clientName" class="field-input" placeholder="e.g. Piyush Sharma"
+                                    autocomplete="name">
+                            </div>
+                            <div class="field-row-3">
+                                <div class="input-field">
+                                    <label class="field-label" for="currentAge">Age</label>
+                                    <div class="num-input-wrap">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('currentAge',-1)">&minus;</button>
+                                        <input type="number" id="currentAge" class="num-input" value="33" min="18"
+                                            max="79" onchange="updateTimeline()">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('currentAge',1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="input-field">
+                                    <label class="field-label" for="retirementAge">Retire At</label>
+                                    <div class="num-input-wrap">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('retirementAge',-1)">&minus;</button>
+                                        <input type="number" id="retirementAge" class="num-input" value="60" min="30"
+                                            max="80" onchange="updateTimeline()">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('retirementAge',1)">+</button>
+                                    </div>
+                                </div>
+                                <div class="input-field">
+                                    <label class="field-label" for="lifeExpectancy">Until</label>
+                                    <div class="num-input-wrap">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('lifeExpectancy',-1)">&minus;</button>
+                                        <input type="number" id="lifeExpectancy" class="num-input" value="85" min="50"
+                                            max="100" onchange="updateTimeline()">
+                                        <button type="button" class="num-btn"
+                                            onclick="stepAge('lifeExpectancy',1)">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="age-timeline" id="age-timeline"></div>
+                        </div>
+                    </div>
+
+                    <!-- 2 Your Money Today -->
+                    <div class="accordion-section open" data-section="2">
+                        <button type="button" class="accordion-header" aria-expanded="true">
+                            <div class="accordion-label">
+                                <span class="section-num">2</span>
+                                <span class="section-title">Your Money Today</span>
+                            </div>
+                            <div class="accordion-right">
+                                <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="input-field">
+                                <label class="field-label" for="currentSavings">Current Invested Corpus <span
+                                        class="field-tooltip"
+                                        data-tip="Total of MFs, stocks, EPF, PPF, NPS etc.">i</span></label>
+                                <div class="currency-input-wrap">
+                                    <span class="currency-prefix">&#8377;</span>
+                                    <input type="number" id="currentSavings" class="field-input currency-input"
+                                        value="1000000" min="0" step="10000" oninput="updateHints()">
+                                </div>
+                                <div class="field-hint" id="savings-display">&#8377;10.00 Lakhs</div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="monthlySavings">Monthly SIP</label>
+                                <div class="currency-input-wrap">
+                                    <span class="currency-prefix">&#8377;</span>
+                                    <input type="number" id="monthlySavings" class="field-input currency-input"
+                                        value="35000" min="0" step="500" oninput="updateHints()">
+                                </div>
+                                <div class="field-hint" id="sip-annual-display">&#8377;4.20 Lakhs / year</div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="sipStepUp">Annual SIP Step-Up <span
+                                        class="field-tooltip"
+                                        data-tip="% increase in SIP each year as income grows">i</span></label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="sipStepUp-fill" style="width:25%"></div>
+                                        <input type="range" id="sipStepUp" class="field-slider" min="0" max="20"
+                                            value="5" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="sipStepUp-val">5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3 Returns & Risk -->
+                    <div class="accordion-section open" data-section="3">
+                        <button type="button" class="accordion-header" aria-expanded="true">
+                            <div class="accordion-label">
+                                <span class="section-num">3</span>
+                                <span class="section-title">Returns &amp; Risk</span>
+                            </div>
+                            <div class="accordion-right">
+                                <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="risk-presets">
+                                <button type="button" class="risk-btn"
+                                    onclick="setRisk('conservative',this)">Conservative</button>
+                                <button type="button" class="risk-btn active"
+                                    onclick="setRisk('balanced',this)">Balanced</button>
+                                <button type="button" class="risk-btn"
+                                    onclick="setRisk('aggressive',this)">Aggressive</button>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="expectedReturn">Pre-Retire Return</label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="expectedReturn-fill" style="width:57%"></div>
+                                        <input type="range" id="expectedReturn" class="field-slider" min="1" max="20"
+                                            value="12" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="expectedReturn-val">12%</span>
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="preRetirementVol">Pre-Retire Volatility (&sigma;) <span
+                                        class="field-tooltip"
+                                        data-tip="Std deviation of annual returns. Equity: 18-22%, Balanced: 12-15%">i</span></label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="preRetirementVol-fill" style="width:48%"></div>
+                                        <input type="range" id="preRetirementVol" class="field-slider" min="3" max="28"
+                                            value="15" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="preRetirementVol-val">15%</span>
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="postRetirementReturn">Post-Retire Return</label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="postRetirementReturn-fill" style="width:42%"></div>
+                                        <input type="range" id="postRetirementReturn" class="field-slider" min="1"
+                                            max="15" value="7" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="postRetirementReturn-val">7%</span>
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="postRetirementVol">Post-Retire Volatility
+                                    (&sigma;)</label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="postRetirementVol-fill" style="width:46%"></div>
+                                        <input type="range" id="postRetirementVol" class="field-slider" min="2" max="15"
+                                            value="8" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="postRetirementVol-val">8%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4 Expenses -->
+                    <div class="accordion-section open" data-section="4">
+                        <button type="button" class="accordion-header" aria-expanded="true">
+                            <div class="accordion-label">
+                                <span class="section-num">4</span>
+                                <span class="section-title">Expenses &amp; Goals</span>
+                            </div>
+                            <div class="accordion-right">
+                                <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="input-field">
+                                <label class="field-label" for="monthlyExpenses">Monthly Need (today's &#8377;)</label>
+                                <div class="currency-input-wrap">
+                                    <span class="currency-prefix">&#8377;</span>
+                                    <input type="number" id="monthlyExpenses" class="field-input currency-input"
+                                        value="75000" min="5000" step="1000" oninput="updateHints()">
+                                </div>
+                                <div class="field-hint" id="expense-inflation-hint">At retirement: calculating...</div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="inflation">Assumed Inflation</label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="inflation-fill" style="width:40%"></div>
+                                        <input type="range" id="inflation" class="field-slider" min="2" max="12"
+                                            value="6" step="1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="inflation-val">6%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5 Advanced -->
+                    <div class="accordion-section collapsed" data-section="5">
+                        <button type="button" class="accordion-header" aria-expanded="false">
+                            <div class="accordion-label">
+                                <span class="section-num advanced">&#9881;</span>
+                                <span class="section-title">Advanced</span>
+                            </div>
+                            <div class="accordion-right">
+                                <span class="badge-new">Optional</span>
+                                <svg class="accordion-chevron" width="12" height="12" viewBox="0 0 12 12">
+                                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="2" fill="none" />
+                                </svg>
+                            </div>
+                        </button>
+                        <div class="accordion-body">
+                            <div class="input-field">
+                                <label class="field-label" for="numSimulations">Simulations</label>
+                                <select id="numSimulations" class="field-input">
+                                    <option value="5000">5,000 (Fast)</option>
+                                    <option value="10000" selected>10,000 (Standard)</option>
+                                    <option value="20000">20,000 (High Precision)</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="additionalLumpsum">Planned Lumpsum (&#8377;)</label>
+                                <div class="currency-input-wrap">
+                                    <span class="currency-prefix">&#8377;</span>
+                                    <input type="number" id="additionalLumpsum" class="field-input currency-input"
+                                        value="0" min="0" step="50000">
+                                </div>
+                                <div class="field-hint">
+                                    Year from now: <input type="number" id="lumpsumYear"
+                                        style="width:44px;display:inline;margin-left:4px" value="5" min="1" max="40">
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="partTimeIncome">Part-Time Income (&#8377;/mo)</label>
+                                <div class="currency-input-wrap">
+                                    <span class="currency-prefix">&#8377;</span>
+                                    <input type="number" id="partTimeIncome" class="field-input currency-input"
+                                        value="0" min="0" step="5000">
+                                </div>
+                                <div class="field-hint">
+                                    Until age: <input type="number" id="partTimeUntilAge"
+                                        style="width:44px;display:inline;margin-left:4px" value="70" min="50" max="90">
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <label class="field-label" for="taxDragPct">Annual Tax Drag <span class="field-tooltip"
+                                        data-tip="Fund expense ratios + LTCG drag">i</span></label>
+                                <div class="slider-field">
+                                    <div class="slider-track-wrap">
+                                        <div class="slider-fill" id="taxDragPct-fill" style="width:16%"></div>
+                                        <input type="range" id="taxDragPct" class="field-slider" min="0" max="3"
+                                            value="0.5" step="0.1" oninput="syncSlider(this)">
+                                    </div>
+                                    <span class="slider-val" id="taxDragPct-val">0.5%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </form><!-- /form -->
+            </div><!-- /sidebar-scroll -->
+
+            <!-- Bottom CTA -->
+            <div class="sidebar-cta-area">
+                <div class="scenario-row">
+                    <button type="button" class="btn-scenario" onclick="saveCurrentScenario()">Save Scenario</button>
+                    <span class="scenario-count" id="scenario-count">0 / 3 saved</span>
+                </div>
+                <button type="submit" form="retirement-form" id="run-button" class="btn-run">Chart My Future
+                    &rarr;</button>
+            </div>
+
+        </aside><!-- /sidebar -->
+
+        <!-- ── Main Canvas ── -->
+        <main class="app-main" id="main-content">
+
+            <!-- ═══ STICKY RESULTS HEADER ═══ -->
+            <div class="sticky-results-header" id="sticky-results">
+
+                <div id="validation-errors" class="alert-error" style="display:none"></div>
+
+                <!-- Comparison panel -->
+                <div class="comparison-panel" id="comparison-panel" style="display:none">
+                    <div class="comparison-header">
+                        <h3 class="comparison-title">Scenario Comparison</h3>
+                        <button class="comparison-close" onclick="closeComparison()">&#215;</button>
+                    </div>
+                    <div id="comparison-table"></div>
+                </div>
+
+                <!-- KPI Strip -->
+                <div class="kpi-strip">
+                    <div class="kpi-accent-bar" id="kpi-accent"></div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Corpus at Retirement</div>
+                        <div class="kpi-value" id="kpi-corpus">&mdash;</div>
+                        <div class="kpi-sub" id="kpi-corpus-range">p10 – p80 range</div>
+                    </div>
+                    <div class="kpi-divider"></div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Probability of Success</div>
+                        <div class="kpi-value kpi-dynamic" id="kpi-success">&mdash;</div>
+                        <div class="kpi-sub" id="kpi-success-label">Plan viability</div>
+                    </div>
+                    <div class="kpi-divider"></div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Corpus Lasts Until Age</div>
+                        <div class="kpi-value" id="kpi-age">&mdash;</div>
+                        <div class="kpi-sub">median simulation</div>
+                    </div>
+                    <div class="kpi-divider"></div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Monthly Need at Retirement</div>
+                        <div class="kpi-value" id="kpi-expense">&mdash;</div>
+                        <div class="kpi-sub">inflation-adjusted</div>
+                    </div>
+                </div>
+
+                <!-- Narrative Card -->
+                <div class="narrative-card" id="narrative-card">
+                    <div class="narrative-accent" id="narrative-accent"></div>
+                    <div class="narrative-body">
+                        <p class="narrative-text" id="narrative-text">Run a simulation to see your personalised plan
+                            analysis.</p>
+                    </div>
+                </div><!-- /narrative-card -->
+
+            </div><!-- /sticky-results-header -->
+
+            <!-- ═══ SCROLLABLE CHART AREA ═══ -->
+            <div class="app-main-scroll">
+
+                <!-- Journey Chart -->
+                <div class="chart-frame" id="frame-journey">
+                    <div class="chart-header">
+                        <div class="chart-title-block">
+                            <div class="chart-eyebrow">LIFETIME PROJECTION</div>
+                            <h2 class="chart-title">Wealth Journey &amp; Projection</h2>
+                            <p class="chart-subtitle">
+                                Accumulation and drawdown phases &middot; Portfolio balance from today to age <span
+                                    id="lbl-life-age-journey">90</span> across 10,000 simulations
+                            </p>
+                        </div>
+                        <div class="chart-actions">
+                            <button class="chart-action-btn" id="btn-compare" onclick="saveCurrentScenario()">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <rect x="1" y="1" width="5" height="12" rx="1" stroke="currentColor"
+                                        stroke-width="1.2" />
+                                    <rect x="8" y="4" width="5" height="9" rx="1" stroke="currentColor"
+                                        stroke-width="1.2" />
+                                </svg>
+                                <span>Compare</span>
+                            </button>
+                            <button class="chart-action-btn chart-action-primary" id="btn-export"
+                                onclick="generatePDF()">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                    <path d="M7 1v8M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.2"
+                                        stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                                <span>PDF Report</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chart-legend-row" id="journey-legend">
+                        <div class="legend-tag" onclick="toggleDataset('journey', 0)"
+                            onmouseenter="highlightChartDataset('journey', 0)"
+                            onmouseleave="resetChartDataset('journey')">
+                            <span class="legend-line" style="background: var(--seed-teal);"></span>
+                            <span class="legend-name">Optimistic</span>
+                            <span class="legend-percentile">p80</span>
+                            <span class="legend-live-val" id="journey-leg-optimistic">&mdash;</span>
+                        </div>
+                        <div class="legend-tag legend-featured" onclick="toggleDataset('journey', 1)"
+                            onmouseenter="highlightChartDataset('journey', 1)"
+                            onmouseleave="resetChartDataset('journey')">
+                            <span class="legend-line" style="background: var(--seed-blue);"></span>
+                            <span class="legend-name">Median</span>
+                            <span class="legend-percentile">p50</span>
+                            <span class="legend-live-val" id="journey-leg-median">&mdash;</span>
+                        </div>
+                        <div class="legend-tag" onclick="toggleDataset('journey', 2)"
+                            onmouseenter="highlightChartDataset('journey', 2)"
+                            onmouseleave="resetChartDataset('journey')">
+                            <span class="legend-line legend-dashed" style="border-color: var(--seed-red);"></span>
+                            <span class="legend-name">Pessimistic</span>
+                            <span class="legend-percentile">p10</span>
+                            <span class="legend-live-val" id="journey-leg-pessimistic">&mdash;</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-canvas-wrap" style="height:360px"><canvas id="journeyChart"></canvas></div>
+
+
+                </div>
+
+                <!-- Histogram -->
+                <div class="chart-frame" id="frame-histogram">
+                    <div class="chart-header">
+                        <div class="chart-title-block">
+                            <div class="chart-eyebrow">DISTRIBUTION PROFILE</div>
+                            <h2 class="chart-title">Corpus at Retirement</h2>
+                            <p class="chart-subtitle">
+                                Range of outcomes at age <span id="lbl-retire-age-hist">60</span> across 10,000
+                                simulations
+                            </p>
+                        </div>
+                        <div class="chart-actions"></div>
+                    </div>
+                    <div class="chart-legend-row" id="histogram-legend">
+                        <div class="legend-tag">
+                            <span class="legend-band-swatch"
+                                style="background: rgba(220,38,38,0.55); border-color: rgba(220,38,38,0.9)"></span>
+                            <span class="legend-name">Bottom 10%</span>
+                        </div>
+                        <div class="legend-tag legend-featured">
+                            <span class="legend-band-swatch"
+                                style="background: rgba(37,99,235,0.45); border-color: rgba(37,99,235,0.8)"></span>
+                            <span class="legend-name">Middle 70%</span>
+                        </div>
+                        <div class="legend-tag">
+                            <span class="legend-band-swatch"
+                                style="background: rgba(13,148,136,0.6); border-color: rgba(13,148,136,0.9)"></span>
+                            <span class="legend-name">Top 20%</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrap" style="height:280px">
+                        <canvas id="histogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Drawdown -->
+                <div class="chart-frame" id="frame-drawdown">
+                    <div class="chart-header">
+                        <div class="chart-title-block">
+                            <div class="chart-eyebrow">DRAWDOWN ANALYSIS</div>
+                            <h2 class="chart-title">Retirement Phase Drawdown</h2>
+                            <p class="chart-subtitle">
+                                Detailed withdrawal phase &middot; Portfolio balance from age
+                                <span id="lbl-retire-age-drawdown">60</span> to <span
+                                    id="lbl-life-age-drawdown">85</span>
+                                across 10,000 simulations
+                            </p>
+                        </div>
+                        <div class="chart-actions"></div>
+                    </div>
+                    <div class="chart-legend-row" id="drawdown-legend">
+                        <div class="legend-tag" onclick="toggleDataset('drawdown', 0)"
+                            onmouseenter="highlightChartDataset('drawdown', 0)"
+                            onmouseleave="resetChartDataset('drawdown')">
+                            <span class="legend-band-swatch"
+                                style="background: rgba(13,148,136,0.15); border-color: rgba(13,148,136,0.25)"></span>
+                            <span class="legend-name">Optimistic Band</span>
+                            <span class="legend-percentile">p80</span>
+                            <span class="legend-live-val" id="drawdown-leg-optimistic">&mdash;</span>
+                        </div>
+                        <div class="legend-tag legend-featured" onclick="toggleDataset('drawdown', 1)"
+                            onmouseenter="highlightChartDataset('drawdown', 1)"
+                            onmouseleave="resetChartDataset('drawdown')">
+                            <span class="legend-line" style="background: var(--seed-blue);"></span>
+                            <span class="legend-name">Median</span>
+                            <span class="legend-percentile">p50</span>
+                            <span class="legend-live-val" id="drawdown-leg-median">&mdash;</span>
+                        </div>
+                        <div class="legend-tag" onclick="toggleDataset('drawdown', 2)"
+                            onmouseenter="highlightChartDataset('drawdown', 2)"
+                            onmouseleave="resetChartDataset('drawdown')">
+                            <span class="legend-line legend-dashed" style="border-color: var(--seed-red);"></span>
+                            <span class="legend-name">Pessimistic</span>
+                            <span class="legend-percentile">p10</span>
+                            <span class="legend-live-val" id="drawdown-leg-pessimistic">&mdash;</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrap" style="height:280px">
+                        <canvas id="drawdownChart"></canvas>
+                    </div>
+                </div>
+
+            </div><!-- /app-main-scroll -->
+
+        </main><!-- /main -->
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <div class="footer-inner">
+                <span class="footer-brand">Seed Investments</span>
+                <span class="footer-sep">&middot;</span>
+                <span>AMFI-Registered MFD</span>
+                <span class="footer-sep">&middot;</span>
+                <span>ARN: 260388</span>
+                <span class="footer-sep">&middot;</span>
+                <span class="footer-disclaimer">For illustrative purposes only. Not investment advice.</span>
+                <span class="footer-sep">&middot;</span>
+                <span>&copy; 2026 Seed Investments</span>
+            </div>
+        </footer>
+
+    </div><!-- /app-shell -->
+
+    <!-- Mobile Bar -->
+    <div class="mobile-bar" id="mobile-bar">
+        <button class="mobile-bar-btn" onclick="toggleMobileSidebar()">Edit Inputs</button>
+        <div class="mobile-bar-kpi">
+            <span id="mobile-kpi-success" style="font-size:16px;font-weight:700">&mdash;</span>
+            <span class="mobile-kpi-label">Success</span>
+        </div>
+        <button class="mobile-bar-btn mobile-bar-primary" onclick="window.runSimulation()">Run &rarr;</button>
+    </div>
+
+    <div class="bottom-sheet-overlay" id="bs-overlay" onclick="toggleMobileSidebar()"></div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- PDF hidden container -->
+    <div id="pdf-container">
+        <div id="pdf-content"></div>
+    </div>
+
+    <!-- Auth Modal (off by default) -->
+    <div class="modal-overlay" id="auth-modal" style="display:none">
+        <div class="modal-card">
+            <div style="text-align:center">
+                <div class="brand-mark" style="margin:0 auto 1rem;font-family:'Clash Display'">S</div>
+                <h2 class="modal-title">Welcome to Seed Planner</h2>
+                <p class="modal-sub">Sign in to save scenarios and access history</p>
+            </div>
+            <div class="modal-body">
+                <div class="input-field"><label class="field-label">Email</label><input type="email" id="auth-email"
+                        class="field-input" placeholder="you@example.com"></div>
+                <div class="input-field"><label class="field-label">Password</label><input type="password"
+                        id="auth-password" class="field-input" placeholder="••••••••"></div>
+                <button class="btn-run" style="margin-top:.75rem"
+                    onclick="document.getElementById('auth-modal').style.display='none'">Sign In</button>
+                <button class="btn-scenario" style="width:100%;margin-top:8px"
+                    onclick="document.getElementById('auth-modal').style.display='none'">Continue without signing in
+                    &rarr;</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function generatePDF() {
+            if (!lastResults) {
+                alert('Please run a projection first.');
+                return;
+            }
+
+            const btn = document.getElementById('download-pdf-button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Generating...';
+            btn.style.pointerEvents = 'none';
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const margin = 15;
+            const useWidth = pageWidth - margin * 2;
+
+            const dateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+            const rawClientName = document.getElementById('clientName').value || 'Valued Client';
+            const clientName = sanitize(rawClientName);
+
+            // Header (Regulatory text included)
+            const headerHTML = `
+          <div style="font-family: Arial, sans-serif; font-size:12px;">
+            <div style="border-bottom: 2px solid #023e8a; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+              <div>
+                <div style="font-size: 24px; font-weight: 700; color: #023e8a;">Seed Investments</div>
+                <div style="font-size: 11px; color: #555;">AMFI-Registered MFD · ARN: [YOUR-ARN-HERE]</div>
+              </div>
+              <div style="font-size: 12px; color: #555; text-align: right; line-height: 1.4;">
+                Retirement Projection Report<br>
+                Prepared for: <strong>${clientName}</strong><br>
+                Generated: ${dateStr}
+              </div>
+            </div>
+            <div style="background: #fffbeb; border: 1px solid #f59e0b; border-radius: 6px; padding: 12px; margin-bottom: 20px; font-size: 10px; color: #78350f; line-height: 1.5;">
+              <strong>FOR ILLUSTRATIVE PURPOSES ONLY — NOT INVESTMENT ADVICE.</strong> This report presents 
+              hypothetical Monte Carlo simulation results (10,000 scenarios) and does not guarantee future returns. 
+              Mutual fund investments are subject to market risk. Read all scheme documents before investing.
+            </div>
+            <div style="display:flex; justify-content: space-between; background: #0f172a; color:white; padding: 15px; border-radius:8px; margin-bottom:20px;">
+              <div style="text-align:center;"><div style="font-size:10px; color:#aaa; margin-bottom:5px;">Median Corpus</div><div style="font-size:18px;">${INR.smart(lastResults.percentiles.p50.corpusAtRetirement)}</div></div>
+              <div style="text-align:center;"><div style="font-size:10px; color:#aaa; margin-bottom:5px;">Success Probability</div><div style="font-size:18px;">${lastResults.successRate.toFixed(0)}%</div></div>
+              <div style="text-align:center;"><div style="font-size:10px; color:#aaa; margin-bottom:5px;">Monthly Need</div><div style="font-size:18px;">${INR.monthly(lastResults.adjustedMonthlyExpenses)}</div></div>
+            </div>
+          </div>
+        `;
+
+            document.getElementById('pdf-header').innerHTML = headerHTML;
+
+            // Render Canvas to Images
+            const journeyC = await html2canvas(document.getElementById('journey-chart'));
+            const histC = await html2canvas(document.getElementById('histogram-chart'));
+            const gaugeC = await html2canvas(document.getElementById('success-gauge'));
+            const drawC = await html2canvas(document.getElementById('drawdown-chart'));
+
+            document.getElementById('pdf-journey-img').src = journeyC.toDataURL('image/png');
+            document.getElementById('pdf-hist-img').src = histC.toDataURL('image/png');
+            document.getElementById('pdf-gauge-img').src = gaugeC.toDataURL('image/png');
+            document.getElementById('pdf-drawdown-img').src = drawC.toDataURL('image/png');
+
+            const bucketHtml = document.getElementById('bucket-callout-container').innerHTML;
+            document.getElementById('pdf-bucket-callout').innerHTML = `<div style="font-family:Arial, sans-serif; margin-top:20px; border-top: 1px solid #eee; padding-top: 20px;">${bucketHtml}</div>`;
+
+            document.getElementById('pdf-footer').innerHTML = `
+          <div style="margin-top: 40px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 9px; color: #888; text-align: center; line-height: 1.6; font-family:Arial, sans-serif;">
+            Seed Investments · AMFI-Registered MFD · ARN: [YOUR-ARN-HERE] · 
+            This projection is for educational purposes only and does not constitute investment advice. 
+            Mutual Fund investments are subject to market risks. Past performance is not indicative of future returns.<br>
+            © ${new Date().getFullYear()} Seed Investments. All rights reserved. 
+            Generated by Seed Retirement Planner v2.0
+          </div>
+        `;
+
+            // Render entire hidden container
+            const container = document.getElementById('pdf-container');
+            container.style.top = '0';
+            container.style.zIndex = '-9999';
+
+            try {
+                const canvas = await html2canvas(container, { scale: 2 });
+                container.style.top = '-9999px';
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgProps = pdf.getImageProperties(imgData);
+                const pdfHeight = (imgProps.height * useWidth) / imgProps.width;
+
+                pdf.addImage(imgData, 'JPEG', margin, margin, useWidth, pdfHeight);
+                pdf.save(`${clientName.replace(/\s+/g, '_')}_Retirement_Plan.pdf`);
+
+                btn.innerHTML = originalText;
+                btn.style.pointerEvents = 'auto';
+
+            } catch (err) {
+                console.error(err);
+                alert('Error generating PDF.');
+                btn.innerHTML = originalText;
+                btn.style.pointerEvents = 'auto';
+                container.style.top = '-9999px';
+            }
+        }
+
+
+    </script>
+    <script src="v3_logic.js"></script>
+</body>
+
+</html>

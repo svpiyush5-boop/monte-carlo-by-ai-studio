@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Scenario": {
+      "title": "Scenario",
+      "description": "A saved retirement plan scenario",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID of the owner" },
+        "name": { "type": "string", "description": "Scenario name" },
+        "params": {
+          "type": "object",
+          "description": "Simulation parameters",
+          "properties": {
+            "currentAge": { "type": "number" },
+            "retirementAge": { "type": "number" },
+            "lifeExpectancy": { "type": "number" },
+            "currentSavings": { "type": "number" },
+            "monthlySavings": { "type": "number" },
+            "sipStepUp": { "type": "number" },
+            "expectedReturn": { "type": "number" },
+            "returnStdDevPre": { "type": "number" },
+            "postRetirementReturn": { "type": "number" },
+            "returnStdDevPost": { "type": "number" },
+            "monthlyExpenses": { "type": "number" },
+            "withdrawalInflation": { "type": "number" },
+            "numSimulations": { "type": "number" },
+            "taxDragPct": { "type": "number" },
+            "additionalLumpsum": { "type": "number" },
+            "lumpsumYear": { "type": "number" },
+            "partTimeIncome": { "type": "number" },
+            "partTimeUntilAge": { "type": "number" },
+            "clientName": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "timestamp", "description": "Creation time" }
+      },
+      "required": ["uid", "name", "params", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/scenarios/{scenarioId}": {
+      "schema": { "$ref": "Scenario" },
+      "description": "Saved scenarios for users"
+    }
+  }
+}
