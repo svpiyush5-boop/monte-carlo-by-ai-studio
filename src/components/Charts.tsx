@@ -65,10 +65,12 @@ export default function Charts({ results, params }: { results: any, params: any 
   const depletionIndex = p10DepletionAge ? p10DepletionAge - currentAge : null;
 
   // Calculate max value for better Y-axis scaling
+  // Use P80 as reference so median/P10 are clearly visible
+  // P90 may clip above chart — that's acceptable
   const maxValue = useMemo(() => {
-    const p90max = Math.max(...p90Path.map((p: any) => p.balance));
-    return Math.ceil(p90max / 10000000) * 10000000 * 1.1;
-  }, [p90Path]);
+    const p80max = Math.max(...p80Path.map((p: any) => p.balance));
+    return Math.ceil(p80max / 10000000) * 10000000 * 1.15;
+  }, [p80Path]);
 
   const journeyData = useMemo(() => {
     const labels = [];
@@ -203,6 +205,7 @@ export default function Charts({ results, params }: { results: any, params: any 
   const journeyOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    clip: false,
     interaction: { mode: 'index' as const, intersect: false },
     onHover: (_: any, elements: any[]) => {
       setHoveredIndex(elements.length > 0 ? elements[0].index : null);
