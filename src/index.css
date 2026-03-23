@@ -11,11 +11,13 @@
   /* ── Surfaces ─────────────────────────────── */
   --surface-page:       #F7F8FA;
   --surface-card:       #FFFFFF;
+  --surface-card-rgb:   255, 255, 255;
   --surface-card-alt:   #F2F4F7;
   --surface-overlay:    #ECEEF2;
 
   /* ── Borders ──────────────────────────────── */
   --border-subtle:      #E2E5EC;
+  --border-subtle-rgb:  226, 229, 236;
   --border-default:     #CDD1DB;
   --border-focus:       #1A56DB;
   --border-strong:      #9AA3B2;
@@ -66,10 +68,12 @@
 [data-theme="dark"] {
   --surface-page:       #0F1117;
   --surface-card:       #181C27;
+  --surface-card-rgb:   24, 28, 39;
   --surface-card-alt:   #1E2335;
   --surface-overlay:    #252B3D;
 
   --border-subtle:      #252B3D;
+  --border-subtle-rgb:  37, 43, 61;
   --border-default:     #2E364D;
   --border-focus:       #4F8EF7;
   --border-strong:      #4A5280;

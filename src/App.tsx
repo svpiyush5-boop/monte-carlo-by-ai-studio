@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { AuthProvider } from './AuthContext';
 import Topbar from './components/Topbar';
 import Sidebar from './components/Sidebar';
@@ -38,8 +38,7 @@ export default function App() {
   const handleRunSimulation = (newParams: SimulationParams) => {
     setParams(newParams);
     setIsRunning(true);
-    
-    // Use setTimeout to allow UI to update before heavy computation
+
     setTimeout(() => {
       try {
         const res = runMonteCarlo(newParams);
@@ -53,31 +52,43 @@ export default function App() {
     }, 50);
   };
 
+  const handleLiveRun = useCallback((newParams: SimulationParams) => {
+    try {
+      const quickParams = { ...newParams, numSimulations: 500 };
+      const res = runMonteCarlo(quickParams);
+      setResults(res);
+    } catch (err) {
+      console.error("Live run error:", err);
+    }
+  }, []);
+
   return (
     <AuthProvider>
       <div className="flex flex-col h-screen overflow-hidden bg-[var(--surface-page)] text-[var(--text-body)] font-['Inter']">
         <Topbar toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
         <div className="flex flex-1 overflow-hidden relative">
           {isSidebarOpen && (
-            <div 
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300" 
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
               onClick={() => setIsSidebarOpen(false)}
             />
           )}
-          <Sidebar 
-            params={params} 
-            onChange={setParams} 
-            onRun={() => handleRunSimulation(params)} 
+          <Sidebar
+            params={params}
+            onChange={setParams}
+            onRun={() => handleRunSimulation(params)}
             isOpen={isSidebarOpen}
             setIsOpen={setIsSidebarOpen}
             isRunning={isRunning}
+            results={results}
+            onLiveRun={handleLiveRun}
+            hasRunOnce={hasRunOnce}
           />
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--surface-page)] relative">
-            {/* Subtle background pattern */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--text-heading) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-            
+
             <MainContent results={results} params={params} />
-            
+
             <footer className="bg-[var(--surface-card)] border-t border-[var(--border-subtle)] px-6 py-4 text-[11px] text-[var(--text-muted)] flex flex-wrap items-center justify-between gap-4 shrink-0 relative z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
               <div className="flex items-center gap-3">
                 <span className="font-bold text-[var(--text-secondary)] tracking-wide uppercase">Seed Investments</span>
