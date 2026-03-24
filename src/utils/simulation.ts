@@ -11,6 +11,20 @@ function _mcPctile(sortedArr: number[], p: number) {
     return sortedArr[Math.min(Math.floor(sortedArr.length * p), sortedArr.length - 1)];
 }
 
+export interface CashflowRow {
+    age: number;
+    year: number;
+    phase: 'accumulation' | 'drawdown';
+    openingBalance: number;
+    contributions: number;
+    lumpsum: number;
+    withdrawals: number;
+    partTimeIncome: number;
+    investmentReturn: number;
+    closingBalance: number;
+    netCashflow: number;
+}
+
 export function runMonteCarlo(params: SimulationParams) {
     const {
         currentAge, retirementAge, lifeExpectancy,
@@ -44,21 +58,61 @@ export function runMonteCarlo(params: SimulationParams) {
     const corpusAtRets: number[] = [];
     const agesAtDepletion: number[] = [];
 
+    // Track per-simulation cashflow rows for median path extraction
+    const allSimCashflows: CashflowRow[][] = [];
+
     for (let sim = 0; sim < numSimulations; sim++) {
         let corpus = currentSavings;
         let monthlySavings = initSIP;
         balsByAge[currentAge].push(corpus);
 
+        const simCashflows: CashflowRow[] = [{
+            age: currentAge,
+            year: 0,
+            phase: 'accumulation' as const,
+            openingBalance: 0,
+            contributions: 0,
+            lumpsum: 0,
+            withdrawals: 0,
+            partTimeIncome: 0,
+            investmentReturn: 0,
+            closingBalance: currentSavings,
+            netCashflow: currentSavings,
+        }];
+
         for (let yr = 0; yr < ytr; yr++) {
             const r = Math.max(_mcGenerateRandomReturn(expRet - taxD, stdPre), -0.999);
             const mr = Math.pow(1 + r, 1 / 12) - 1;
             const age = currentAge + yr + 1;
+            const openingBal = corpus;
+            let yearlyContrib = 0;
+
             for (let mo = 0; mo < 12; mo++) {
                 corpus = (corpus + monthlySavings) * (1 + mr);
+                yearlyContrib += monthlySavings;
             }
+
+            const lumpsumAdded = (additionalLumpsum > 0 && lumpsumYear > 0 && yr + 1 === lumpsumYear) ? additionalLumpsum : 0;
+            if (lumpsumAdded > 0) corpus += lumpsumAdded;
+
+            const investmentReturn = corpus - openingBal - yearlyContrib - lumpsumAdded;
+
             if (stepUp > 0) monthlySavings *= (1 + stepUp);
-            if (additionalLumpsum > 0 && lumpsumYear > 0 && yr + 1 === lumpsumYear) corpus += additionalLumpsum;
             balsByAge[age].push(Math.max(0, corpus));
+
+            simCashflows.push({
+                age,
+                year: yr + 1,
+                phase: 'accumulation' as const,
+                openingBalance: openingBal,
+                contributions: yearlyContrib,
+                lumpsum: lumpsumAdded,
+                withdrawals: 0,
+                partTimeIncome: 0,
+                investmentReturn,
+                closingBalance: Math.max(0, corpus),
+                netCashflow: yearlyContrib + lumpsumAdded,
+            });
         }
 
         const car = Math.max(0, corpus);
@@ -76,15 +130,47 @@ export function runMonteCarlo(params: SimulationParams) {
                 currentAnnualWithdrawal *= (1 + inf);
             }
             
+            const openingBal = rc;
+            const preReturnBal = rc + pt;
             rc = rc * (1 + r) - currentAnnualWithdrawal + pt;
+            const investmentReturn = (openingBal * r);
+
             if (rc <= 0) {
                 aod = age;
+                simCashflows.push({
+                    age,
+                    year: ytr + yr + 1,
+                    phase: 'drawdown' as const,
+                    openingBalance: openingBal,
+                    contributions: 0,
+                    lumpsum: 0,
+                    withdrawals: currentAnnualWithdrawal,
+                    partTimeIncome: pt,
+                    investmentReturn,
+                    closingBalance: 0,
+                    netCashflow: pt - currentAnnualWithdrawal,
+                });
                 for (let a = age; a <= lifeExpectancy; a++) balsByAge[a].push(0);
                 break;
             }
             balsByAge[age].push(Math.max(0, rc));
+
+            simCashflows.push({
+                age,
+                year: ytr + yr + 1,
+                phase: 'drawdown' as const,
+                openingBalance: openingBal,
+                contributions: 0,
+                lumpsum: 0,
+                withdrawals: currentAnnualWithdrawal,
+                partTimeIncome: pt,
+                investmentReturn,
+                closingBalance: Math.max(0, rc),
+                netCashflow: pt - currentAnnualWithdrawal,
+            });
         }
         agesAtDepletion.push(aod);
+        allSimCashflows.push(simCashflows);
     }
 
     const p10Path = [], p50Path = [], p80Path = [], p90Path = [];
@@ -95,6 +181,19 @@ export function runMonteCarlo(params: SimulationParams) {
         p80Path.push({ age: a, balance: _mcPctile(v, 0.80) });
         p90Path.push({ age: a, balance: _mcPctile(v, 0.90) });
     }
+
+    // Extract median cashflow: find simulation whose corpus at retirement is closest to p50
+    const p50Corpus = _mcPctile(corpusAtRets.slice().sort((a, b) => a - b), 0.50);
+    let bestSimIdx = 0;
+    let bestDiff = Infinity;
+    for (let i = 0; i < corpusAtRets.length; i++) {
+        const diff = Math.abs(corpusAtRets[i] - p50Corpus);
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            bestSimIdx = i;
+        }
+    }
+    const medianCashflow: CashflowRow[] = allSimCashflows[bestSimIdx] || [];
 
     const n = agesAtDepletion.length;
     const ok = agesAtDepletion.filter(a => a >= lifeExpectancy).length;
@@ -124,5 +223,6 @@ export function runMonteCarlo(params: SimulationParams) {
         corpusHistogram: { bins },
         yearsToRetirement: ytr,
         yearsInRetirement: yir,
+        medianCashflow,
     };
 }

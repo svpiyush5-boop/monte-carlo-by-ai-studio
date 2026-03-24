@@ -33,27 +33,23 @@ const formatINR = (val: number) => {
   return `₹${Math.round(val).toLocaleString('en-IN')}`;
 };
 
-// Institutional-grade color palette
 const COLORS = {
-  median: '#1E293B',          // Deep charcoal
-  optimistic: '#059669',     // Muted green
-  pessimistic: '#DC2626',     // Controlled red
-  retirement: '#6366F1',      // Indigo accent
+  median: '#1E293B',
+  optimistic: '#059669',
+  pessimistic: '#DC2626',
+  retirement: '#6366F1',
   bandOuter: 'rgba(30, 41, 59, 0.05)',
   bandInner: 'rgba(30, 41, 59, 0.08)',
   grid: 'rgba(15,23,42,0.04)',
   text: '#64748B',
-  depletion: 'rgba(220, 38, 38, 0.04)'
 };
 
-export default function Charts({ results, params }: { results: any, params: any }) {
+export default function Charts({ results, params }: { results: any; params: any }) {
   const { p10Path, p50Path, p80Path, p90Path, corpusHistogram } = results;
   const { currentAge, lifeExpectancy, retirementAge } = params;
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const retirementIndex = retirementAge - currentAge;
 
-  // Find depletion points for annotations
   const findDepletionAge = (path: any[]) => {
     for (const p of path) {
       if (p.balance <= 0) return p.age;
@@ -64,9 +60,6 @@ export default function Charts({ results, params }: { results: any, params: any 
   const p10DepletionAge = findDepletionAge(p10Path);
   const depletionIndex = p10DepletionAge ? p10DepletionAge - currentAge : null;
 
-  // Calculate max value for better Y-axis scaling
-  // Use P80 as reference so median/P10 are clearly visible
-  // P90 may clip above chart — that's acceptable
   const maxValue = useMemo(() => {
     const p80max = Math.max(...p80Path.map((p: any) => p.balance));
     return Math.ceil(p80max / 10000000) * 10000000 * 1.15;
@@ -90,7 +83,6 @@ export default function Charts({ results, params }: { results: any, params: any 
     return {
       labels,
       datasets: [
-        // Best Case (P90) - dashed
         {
           label: 'Best Case',
           data: p90,
@@ -103,7 +95,6 @@ export default function Charts({ results, params }: { results: any, params: any 
           fill: false,
           order: 1
         },
-        // Outer Band (P10-P90)
         {
           label: 'Outer Band',
           data: p90,
@@ -115,7 +106,6 @@ export default function Charts({ results, params }: { results: any, params: any 
           fill: '+1',
           order: 5
         },
-        // P80 reference for inner band
         {
           label: 'P80 Ref',
           data: p80,
@@ -127,7 +117,6 @@ export default function Charts({ results, params }: { results: any, params: any 
           fill: false,
           order: 6
         },
-        // Inner Band (P20-P80)
         {
           label: 'Inner Band',
           data: p80,
@@ -139,25 +128,23 @@ export default function Charts({ results, params }: { results: any, params: any 
           fill: '-1',
           order: 4
         },
-        // Median (P50) - dominant
         {
           label: 'Expected',
           data: p50,
           borderColor: COLORS.median,
           backgroundColor: 'transparent',
-          borderWidth: 3,
+          borderWidth: 2.5,
           tension: 0.3,
           pointRadius: 0,
           fill: false,
           order: 2
         },
-        // Worst Case (P10) - emphasized
         {
           label: 'Worst Case',
           data: p10,
           borderColor: COLORS.pessimistic,
           backgroundColor: 'transparent',
-          borderWidth: 2,
+          borderWidth: 1.5,
           tension: 0.3,
           pointRadius: 0,
           borderDash: [2, 2],
@@ -179,7 +166,6 @@ export default function Charts({ results, params }: { results: any, params: any 
     }
   };
 
-  // Add depletion marker if P10 goes to zero
   if (depletionIndex !== null) {
     annotations.depletionMarker = {
       type: 'line',
@@ -207,9 +193,6 @@ export default function Charts({ results, params }: { results: any, params: any 
     maintainAspectRatio: false,
     clip: false,
     interaction: { mode: 'index' as const, intersect: false },
-    onHover: (_: any, elements: any[]) => {
-      setHoveredIndex(elements.length > 0 ? elements[0].index : null);
-    },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -227,15 +210,12 @@ export default function Charts({ results, params }: { results: any, params: any 
           title: (items: any[]) => {
             const age = parseInt(items[0].label);
             const yearsPostRetirement = age - retirementAge;
-            if (yearsPostRetirement > 0) {
-              return [`Age ${age}`, `${yearsPostRetirement} years post-retirement`];
-            } else if (yearsPostRetirement < 0) {
-              return [`Age ${age}`, `${Math.abs(yearsPostRetirement)} years to retirement`];
-            }
-            return ['Age ${age}', 'Retirement Year'];
+            if (yearsPostRetirement > 0) return [`Age ${age}`, `${yearsPostRetirement} years post-retirement`];
+            if (yearsPostRetirement < 0) return [`Age ${age}`, `${Math.abs(yearsPostRetirement)} years to retirement`];
+            return [`Age ${age}`, 'Retirement Year'];
           },
           label: (ctx: any) => {
-            if (ctx.dataset.label === 'Outer Band' || ctx.dataset.label === 'Inner Band' || ctx.dataset.label === 'P80 Ref') return null;
+            if (['Outer Band', 'Inner Band', 'P80 Ref'].includes(ctx.dataset.label)) return null;
             return `  ${ctx.dataset.label}: ${formatINR(ctx.raw)}`;
           }
         }
@@ -245,7 +225,7 @@ export default function Charts({ results, params }: { results: any, params: any 
     scales: {
       x: {
         grid: { color: COLORS.grid, drawTicks: false },
-        ticks: { 
+        ticks: {
           maxTicksLimit: 8,
           font: { family: "'JetBrains Mono'", size: 9 },
           color: '#94A3B8',
@@ -276,7 +256,6 @@ export default function Charts({ results, params }: { results: any, params: any 
     }
   };
 
-  // Histogram
   const histogramData = useMemo(() => {
     const bins = corpusHistogram.bins;
     const p10val = results.corpusAtRetirement.p10;
@@ -332,90 +311,58 @@ export default function Charts({ results, params }: { results: any, params: any 
   };
 
   return (
-    <div className="space-y-8">
-      {/* WEALTH JOURNEY - Institutional Grade */}
-      <div className="card overflow-hidden border-0 shadow-[var(--shadow-md)] bg-[var(--surface-card)]">
-        <div className="p-5 md:p-6 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-['Outfit'] text-xl font-bold text-[var(--text-heading)]">Wealth Journey</h2>
-              <p className="text-xs text-[var(--text-muted)] mt-1">
-                Portfolio projection across 10,000 Monte Carlo simulations
-              </p>
-            </div>
-            {/* Retirement Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-[var(--surface-info)] rounded-md border border-[var(--accent-primary)]/20">
-              <div className="w-2 h-2 rounded-full bg-[var(--accent-primary)]" />
-              <span className="text-xs font-bold text-[var(--accent-primary)]">Retirement (Age {retirementAge})</span>
-            </div>
+    <div>
+      {/* Section header with inline legend */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h2 className="font-['Outfit'] text-sm font-bold text-[var(--text-heading)]">Wealth Projection</h2>
+          <div className="flex items-center gap-3 text-[9px]">
+            <LegendItem color="#DC2626" dashed label="Worst (P10)" />
+            <LegendItem color="rgba(30,41,59,0.15)" solid label="P20–P80" />
+            <LegendItem color="#1E293B" solid label="Expected (P50)" bold />
+            <LegendItem color="#059669" dashed label="Best (P90)" />
           </div>
         </div>
-
-        {/* Premium Compact Legend */}
-        <div className="px-5 md:px-6 py-3 border-b border-[var(--border-subtle)] bg-[var(--surface-card-alt)]/30">
-          <div className="flex flex-wrap items-center gap-5 text-[10px]">
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-0.5 bg-[#DC2626]" style={{ borderStyle: 'dashed' }} />
-              <span className="text-[var(--text-muted)]">Worst Case (P10)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-0.5 bg-[#1E293B] opacity-20" />
-              <span className="text-[var(--text-muted)]">P20–P80 Range</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-0.5 bg-[#1E293B]" />
-              <span className="font-bold text-[var(--text-heading)]">Expected (P50)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-0.5 bg-[#059669]" style={{ borderStyle: 'dashed' }} />
-              <span className="text-[var(--text-muted)]">Best Case (P90)</span>
-            </div>
-            {p10DepletionAge && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#DC2626]" />
-                <span className="text-[#DC2626] font-bold">Funds exhausted: Age {p10DepletionAge}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="h-[360px] p-5 md:p-6">
-          <Line data={journeyData} options={journeyOptions as any} />
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-info)] text-[9px] font-bold text-[var(--accent-primary)]">
+          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
+          Retirement (Age {retirementAge})
         </div>
       </div>
 
-      {/* CORPUS DISTRIBUTION */}
-      <div className="card overflow-hidden border-0 shadow-[var(--shadow-md)] bg-[var(--surface-card)]">
-        <div className="p-5 md:p-6 border-b border-[var(--border-subtle)]">
-          <h2 className="font-['Outfit'] text-xl font-bold text-[var(--text-heading)]">Corpus at Retirement</h2>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            Distribution at age {retirementAge}
-          </p>
+      {/* Main chart — 420px */}
+      <div style={{ height: '420px' }}>
+        <Line data={journeyData} options={journeyOptions as any} />
+      </div>
+
+      {/* Histogram — inline, no card */}
+      <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-bold text-[var(--text-heading)]">Corpus Distribution at Age {retirementAge}</span>
+          <div className="flex items-center gap-3 text-[9px]">
+            <span className="text-[var(--semantic-danger)] font-bold">P10: {formatINR(results.corpusAtRetirement.p10)}</span>
+            <span className="text-[var(--text-heading)] font-bold">P50: {formatINR(results.corpusAtRetirement.p50)}</span>
+            <span className="text-[var(--semantic-success)] font-bold">P90: {formatINR(results.corpusAtRetirement.p90)}</span>
+          </div>
         </div>
-        <div className="h-[240px] p-5 md:p-6">
+        <div style={{ height: '160px' }}>
           <Bar data={histogramData} options={histogramOptions as any} />
         </div>
-        <div className="px-5 md:px-6 py-3 bg-[var(--surface-card-alt)]/50 border-t border-[var(--border-subtle)]">
-          <div className="grid grid-cols-4 gap-4 text-center text-xs">
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-[#DC2626]">Bottom 10%</div>
-              <div className="text-sm font-bold text-[var(--text-heading)] mt-0.5">{formatINR(results.corpusAtRetirement.p10)}</div>
-            </div>
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-heading)]">Median</div>
-              <div className="text-sm font-bold text-[var(--text-heading)] mt-0.5">{formatINR(results.corpusAtRetirement.p50)}</div>
-            </div>
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-heading)]">Top 20%</div>
-              <div className="text-sm font-bold text-[var(--text-heading)] mt-0.5">{formatINR(results.corpusAtRetirement.p80)}</div>
-            </div>
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-[#059669]">Top 10%</div>
-              <div className="text-sm font-bold text-[var(--text-heading)] mt-0.5">{formatINR(results.corpusAtRetirement.p90)}</div>
-            </div>
-          </div>
-        </div>
       </div>
+    </div>
+  );
+}
+
+function LegendItem({ color, dashed, solid, label, bold }: { color: string; dashed?: boolean; solid?: boolean; label: string; bold?: boolean }) {
+  return (
+    <div className="flex items-center gap-1">
+      <div
+        className="w-5 h-[2px]"
+        style={{
+          backgroundColor: solid ? color : 'transparent',
+          borderBottom: dashed ? `2px dashed ${color}` : undefined,
+        }}
+      />
+      <span className={`text-[var(--text-muted)] ${bold ? 'font-bold text-[var(--text-heading)]' : ''}`}>{label}</span>
     </div>
   );
 }

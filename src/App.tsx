@@ -85,8 +85,6 @@ export default function App() {
             hasRunOnce={hasRunOnce}
           />
           <div className="flex-1 flex flex-col overflow-hidden bg-[var(--surface-page)] relative">
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--text-heading) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-
             <MainContent results={results} params={params} />
 
             <footer className="bg-[var(--surface-card)] border-t border-[var(--border-subtle)] px-6 py-4 text-[11px] text-[var(--text-muted)] flex flex-wrap items-center justify-between gap-4 shrink-0 relative z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
