@@ -34,19 +34,19 @@ const formatINR = (val: number) => {
 };
 
 const COLORS = {
-  median: '#1E293B',
+  median: '#0F172A',      // Darker for emphasis
   optimistic: '#059669',
   pessimistic: '#DC2626',
   retirement: '#6366F1',
-  bandOuter: 'rgba(30, 41, 59, 0.05)',
-  bandInner: 'rgba(30, 41, 59, 0.08)',
-  grid: 'rgba(15,23,42,0.04)',
-  text: '#64748B',
+  bandOuter: 'rgba(30, 41, 59, 0.04)',
+  bandInner: 'rgba(30, 41, 59, 0.06)',
+  grid: 'rgba(15,23,42,0.03)',
 };
 
 export default function Charts({ results, params }: { results: any; params: any }) {
   const { p10Path, p50Path, p80Path, p90Path, corpusHistogram } = results;
   const { currentAge, lifeExpectancy, retirementAge } = params;
+  const [showDistribution, setShowDistribution] = useState(false);
 
   const retirementIndex = retirementAge - currentAge;
 
@@ -60,9 +60,10 @@ export default function Charts({ results, params }: { results: any; params: any 
   const p10DepletionAge = findDepletionAge(p10Path);
   const depletionIndex = p10DepletionAge ? p10DepletionAge - currentAge : null;
 
+  // Increase max value for taller chart
   const maxValue = useMemo(() => {
     const p80max = Math.max(...p80Path.map((p: any) => p.balance));
-    return Math.ceil(p80max / 10000000) * 10000000 * 1.15;
+    return Math.ceil(p80max / 10000000) * 10000000 * 1.2;
   }, [p80Path]);
 
   const journeyData = useMemo(() => {
@@ -83,6 +84,7 @@ export default function Charts({ results, params }: { results: any; params: any 
     return {
       labels,
       datasets: [
+        // Best Case (P90) - thin dashed
         {
           label: 'Best Case',
           data: p90,
@@ -95,6 +97,7 @@ export default function Charts({ results, params }: { results: any; params: any 
           fill: false,
           order: 1
         },
+        // Outer Band (P10-P90)
         {
           label: 'Outer Band',
           data: p90,
@@ -106,6 +109,7 @@ export default function Charts({ results, params }: { results: any; params: any 
           fill: '+1',
           order: 5
         },
+        // P80 reference
         {
           label: 'P80 Ref',
           data: p80,
@@ -117,6 +121,7 @@ export default function Charts({ results, params }: { results: any; params: any 
           fill: false,
           order: 6
         },
+        // Inner Band (P20-P80)
         {
           label: 'Inner Band',
           data: p80,
@@ -128,17 +133,19 @@ export default function Charts({ results, params }: { results: any; params: any 
           fill: '-1',
           order: 4
         },
+        // Expected (P50) - THICK, DARK - PRIMARY
         {
           label: 'Expected',
           data: p50,
           borderColor: COLORS.median,
           backgroundColor: 'transparent',
-          borderWidth: 2.5,
+          borderWidth: 3.5,
           tension: 0.3,
           pointRadius: 0,
           fill: false,
           order: 2
         },
+        // Worst Case (P10) - thin dashed
         {
           label: 'Worst Case',
           data: p10,
@@ -147,7 +154,7 @@ export default function Charts({ results, params }: { results: any; params: any 
           borderWidth: 1.5,
           tension: 0.3,
           pointRadius: 0,
-          borderDash: [2, 2],
+          borderDash: [3, 3],
           fill: false,
           order: 3
         }
@@ -163,10 +170,21 @@ export default function Charts({ results, params }: { results: any; params: any 
       borderColor: COLORS.retirement,
       borderWidth: 2,
       borderDash: [6, 4],
+      label: {
+        display: true,
+        content: 'Retirement',
+        position: 'start',
+        yAdjust: -30,
+        backgroundColor: COLORS.retirement,
+        color: 'white',
+        font: { family: "'Outfit'", size: 10, weight: 'bold' },
+        padding: { x: 8, y: 4 },
+        borderRadius: 4
+      }
     }
   };
 
-  if (depletionIndex !== null) {
+  if (depletionIndex !== null && p10DepletionAge) {
     annotations.depletionMarker = {
       type: 'line',
       xMin: depletionIndex,
@@ -176,7 +194,7 @@ export default function Charts({ results, params }: { results: any; params: any 
       borderDash: [3, 3],
       label: {
         display: true,
-        content: 'Funds exhausted',
+        content: `Depletion risk: ${p10DepletionAge}`,
         position: 'start',
         yAdjust: -10,
         backgroundColor: 'rgba(220,38,38,0.9)',
@@ -199,11 +217,11 @@ export default function Charts({ results, params }: { results: any; params: any 
         enabled: true,
         backgroundColor: 'rgba(255,255,255,0.98)',
         titleColor: COLORS.median,
-        bodyColor: COLORS.text,
+        bodyColor: '#64748B',
         borderColor: '#E2E8F0',
         borderWidth: 1,
         padding: 14,
-        cornerRadius: 6,
+        cornerRadius: 8,
         titleFont: { family: "'Outfit'", size: 13, weight: 'bold' as const },
         bodyFont: { family: "'JetBrains Mono'", size: 11 },
         callbacks: {
@@ -226,8 +244,8 @@ export default function Charts({ results, params }: { results: any; params: any 
       x: {
         grid: { color: COLORS.grid, drawTicks: false },
         ticks: {
-          maxTicksLimit: 8,
-          font: { family: "'JetBrains Mono'", size: 9 },
+          maxTicksLimit: 10,
+          font: { family: "'JetBrains Mono'", size: 10 },
           color: '#94A3B8',
           callback: (v: any, i: number) => {
             const age = currentAge + i;
@@ -245,9 +263,9 @@ export default function Charts({ results, params }: { results: any; params: any 
             if (v >= 100000) return `₹${(v / 100000).toFixed(0)}L`;
             return '';
           },
-          font: { family: "'JetBrains Mono'", size: 9 },
+          font: { family: "'JetBrains Mono'", size: 10 },
           color: '#94A3B8',
-          maxTicksLimit: 5
+          maxTicksLimit: 6
         },
         border: { display: false },
         beginAtZero: true,
@@ -263,9 +281,9 @@ export default function Charts({ results, params }: { results: any; params: any 
 
     const bgColors = bins.map((b: any) => {
       const mid = (b.min + b.max) / 2;
-      if (mid < p10val) return 'rgba(220,38,38,0.5)';
-      if (mid > p80val) return 'rgba(5,150,103,0.5)';
-      return 'rgba(30,41,59,0.4)';
+      if (mid < p10val) return 'rgba(220,38,38,0.6)';
+      if (mid > p80val) return 'rgba(5,150,103,0.6)';
+      return 'rgba(30,41,59,0.5)';
     });
 
     return {
@@ -288,7 +306,7 @@ export default function Charts({ results, params }: { results: any; params: any 
       tooltip: {
         backgroundColor: 'rgba(255,255,255,0.98)',
         titleColor: COLORS.median,
-        bodyColor: COLORS.text,
+        bodyColor: '#64748B',
         borderColor: '#E2E8F0',
         borderWidth: 1,
         padding: 12,
@@ -306,47 +324,56 @@ export default function Charts({ results, params }: { results: any; params: any 
     },
     scales: {
       x: { display: false },
-      y: { grid: { color: COLORS.grid }, ticks: { maxTicksLimit: 4, font: { size: 9 }, color: '#94A3B8' } }
+      y: { grid: { color: COLORS.grid }, ticks: { maxTicksLimit: 3, font: { size: 9 }, color: '#94A3B8' } }
     }
   };
 
   return (
     <div>
-      {/* Section header with inline legend */}
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="font-['Outfit'] text-sm font-bold text-[var(--text-heading)]">Wealth Projection</h2>
-          <div className="flex items-center gap-3 text-[9px]">
-            <LegendItem color="#DC2626" dashed label="Worst (P10)" />
-            <LegendItem color="rgba(30,41,59,0.15)" solid label="P20–P80" />
-            <LegendItem color="#1E293B" solid label="Expected (P50)" bold />
-            <LegendItem color="#059669" dashed label="Best (P90)" />
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--surface-info)] text-[9px] font-bold text-[var(--accent-primary)]">
-          <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)]" />
-          Retirement (Age {retirementAge})
+      {/* Section header */}
+      <div className="flex items-center justify-between mb-4 px-4 md:px-8">
+        <h2 className="font-['Outfit'] text-lg font-bold text-[var(--text-heading)]">Wealth Projection</h2>
+        <div className="flex items-center gap-3 text-[9px]">
+          <LegendItem color="#DC2626" dashed label="Worst (P10)" />
+          <span className="mx-1 text-[var(--border-subtle)]">|</span>
+          <LegendItem color="rgba(30,41,59,0.15)" solid label="Range" />
+          <span className="mx-1 text-[var(--border-subtle)]">|</span>
+          <LegendItem color="#0F172A" solid label="Expected" bold />
+          <span className="mx-1 text-[var(--border-subtle)]">|</span>
+          <LegendItem color="#059669" dashed label="Best (P90)" />
         </div>
       </div>
 
-      {/* Main chart — 420px */}
-      <div style={{ height: '420px' }}>
+      {/* Main chart - 500px tall (40% increase) */}
+      <div className="px-4 md:px-8" style={{ height: '500px' }}>
         <Line data={journeyData} options={journeyOptions as any} />
       </div>
 
-      {/* Histogram — inline, no card */}
-      <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-[var(--text-heading)]">Corpus Distribution at Age {retirementAge}</span>
-          <div className="flex items-center gap-3 text-[9px]">
-            <span className="text-[var(--semantic-danger)] font-bold">P10: {formatINR(results.corpusAtRetirement.p10)}</span>
-            <span className="text-[var(--text-heading)] font-bold">P50: {formatINR(results.corpusAtRetirement.p50)}</span>
-            <span className="text-[var(--semantic-success)] font-bold">P90: {formatINR(results.corpusAtRetirement.p90)}</span>
+      {/* COLLAPSIBLE: Risk Distribution */}
+      <div className="px-4 md:px-8 mt-4">
+        <button 
+          onClick={() => setShowDistribution(!showDistribution)}
+          className="text-xs font-bold text-[var(--text-muted)] hover:text-[var(--text-heading)] transition-colors flex items-center gap-1"
+        >
+          <span>{showDistribution ? '▼' : '▶'}</span>
+          See Risk Distribution
+        </button>
+        
+        {showDistribution && (
+          <div className="mt-3 pt-3 border-t border-[var(--border-subtle)]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-[var(--text-heading)]">Corpus Distribution at Retirement</span>
+              <div className="flex items-center gap-3 text-[9px]">
+                <span className="text-[var(--semantic-danger)] font-bold">P10: {formatINR(results.corpusAtRetirement.p10)}</span>
+                <span className="text-[var(--text-heading)] font-bold">P50: {formatINR(results.corpusAtRetirement.p50)}</span>
+                <span className="text-[var(--semantic-success)] font-bold">P90: {formatINR(results.corpusAtRetirement.p90)}</span>
+              </div>
+            </div>
+            <div style={{ height: '140px' }}>
+              <Bar data={histogramData} options={histogramOptions as any} />
+            </div>
           </div>
-        </div>
-        <div style={{ height: '160px' }}>
-          <Bar data={histogramData} options={histogramOptions as any} />
-        </div>
+        )}
       </div>
     </div>
   );

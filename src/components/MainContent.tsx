@@ -2,6 +2,7 @@ import React from 'react';
 import { SimulationParams } from '../types';
 import SummaryBar from './SummaryBar';
 import Charts from './Charts';
+import InsightStrip from './InsightStrip';
 import TabbedPanel from './TabbedPanel';
 import CashflowTable from './CashflowTable';
 import DiagnosisCard from './DiagnosisCard';
@@ -40,31 +41,36 @@ export default function MainContent({ results, params }: MainContentProps) {
 
   return (
     <main className="flex-1 overflow-y-auto bg-[var(--surface-page)]">
-      {/* PANEL 1: Summary Bar */}
-      <SummaryBar results={results} params={params} />
+      {/* 1. PLAN HEALTH - DOMINANT HERO STRIP */}
+      <div className="pt-6">
+        <SummaryBar results={results} params={params} />
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 pb-8">
-        {/* PANEL 2: Charts */}
+      {/* 2. WEALTH PROJECTION GRAPH - DOMINANT */}
+      <div className="mt-8">
         <Charts results={results} params={params} />
+      </div>
 
-        {/* PANEL 3: Tabbed Analysis */}
-        <div className="mt-8">
-          <TabbedPanel
-            tabs={[
-              { id: 'cashflow', label: 'Cashflow', icon: ArrowRight },
-              { id: 'diagnosis', label: 'Risk Diagnosis', icon: Target },
-              { id: 'advisor', label: 'Advisor', icon: Sparkles },
-              { id: 'whatif', label: 'What-If', icon: Sliders },
-            ]}
-          >
-            <CashflowTable results={results} params={params} />
-            <DiagnosisCard results={results} params={params} />
-            <InsightCard results={results} params={params} />
-            <WhatIfStrip results={results} params={params} />
-          </TabbedPanel>
-        </div>
+      {/* 3. WHAT THIS MEANS - INSIGHT STRIP */}
+      <InsightStrip results={results} params={params} />
 
-        {/* Narrative — inline at bottom */}
+      {/* 4. TABBED ANALYSIS - CASHFLOW DEFAULT */}
+      <TabbedPanel
+        tabs={[
+          { id: 'cashflow', label: 'Cashflow', icon: ArrowRight },
+          { id: 'diagnosis', label: 'Risk Diagnosis', icon: Target },
+          { id: 'advisor', label: 'Advisor', icon: Sparkles },
+          { id: 'whatif', label: 'What-If', icon: Sliders },
+        ]}
+      >
+        <CashflowTable results={results} params={params} />
+        <DiagnosisCard results={results} params={params} />
+        <InsightCard results={results} params={params} />
+        <WhatIfStrip results={results} params={params} />
+      </TabbedPanel>
+
+      {/* 5. Narrative - inline at bottom */}
+      <div className="mx-4 md:mx-8 mt-6 pb-6">
         <NarrativeCard results={results} params={params} />
       </div>
     </main>

@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { Download, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import type { CashflowRow } from '../utils/simulation';
 
 const formatINR = (val: number) => {
@@ -24,6 +24,7 @@ const formatSignedINR = (val: number) => {
 export default function CashflowTable({ results, params }: { results: any; params: any }) {
   const [showAccum, setShowAccum] = useState(true);
   const [showDrawdown, setShowDrawdown] = useState(true);
+  const [expanded, setExpanded] = useState(false); // COLLAPSED BY DEFAULT
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -32,18 +33,16 @@ export default function CashflowTable({ results, params }: { results: any; param
   const { currentAge, retirementAge, lifeExpectancy } = params;
   const rows: CashflowRow[] = medianCashflow || [];
 
-  const { accumulationRows, drawdownRows, accumTotals, drawdownTotals, grandTotals } = useMemo(() => {
+  const { accumulationRows, drawdownRows, grandTotals } = useMemo(() => {
     const accum = rows.filter(r => r.phase === 'accumulation');
     const draw = rows.filter(r => r.phase === 'drawdown');
     const sumField = (arr: CashflowRow[], field: keyof CashflowRow) => arr.reduce((s, r) => s + (r[field] as number), 0);
     return {
-      accumulationRows: accum, drawdownRows: draw,
-      accumTotals: { contributions: sumField(accum, 'contributions'), lumpsum: sumField(accum, 'lumpsum'), investmentReturn: sumField(accum, 'investmentReturn') },
-      drawdownTotals: { withdrawals: sumField(draw, 'withdrawals'), partTimeIncome: sumField(draw, 'partTimeIncome'), investmentReturn: sumField(draw, 'investmentReturn') },
+      accumulationRows: accum,
+      drawdownRows: draw,
       grandTotals: {
         totalContributions: sumField(accum, 'contributions') + sumField(accum, 'lumpsum'),
         totalWithdrawals: sumField(draw, 'withdrawals'),
-        totalPartTime: sumField(draw, 'partTimeIncome'),
         totalReturn: sumField(accum, 'investmentReturn') + sumField(draw, 'investmentReturn'),
       },
     };
@@ -55,6 +54,9 @@ export default function CashflowTable({ results, params }: { results: any; param
     if (showDrawdown) r.push(...drawdownRows);
     return r;
   }, [showAccum, showDrawdown, accumulationRows, drawdownRows]);
+
+  // PREVIEW MODE: only 3 rows
+  const displayRows = expanded ? visibleRows : visibleRows.slice(0, 3);
 
   const lastRow = rows[rows.length - 1];
   const finalBalance = lastRow?.closingBalance || 0;
@@ -76,7 +78,7 @@ export default function CashflowTable({ results, params }: { results: any; param
       ro.observe(el);
       return () => { el.removeEventListener('scroll', checkScroll); ro.disconnect(); };
     }
-  }, [visibleRows]);
+  }, [displayRows]);
 
   const scrollBy = (dir: number) => { scrollRef.current?.scrollBy({ left: dir * 260, behavior: 'smooth' }); };
 
@@ -93,11 +95,10 @@ export default function CashflowTable({ results, params }: { results: any; param
   if (!rows.length) return null;
 
   return (
-    <div>
+    <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border-subtle)] overflow-hidden">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
-          <h2 className="font-['Outfit'] text-sm font-bold text-[var(--text-heading)]">Median Cashflow</h2>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1 cursor-pointer select-none">
               <input type="checkbox" checked={showAccum} onChange={e => setShowAccum(e.target.checked)} className="w-3 h-3 rounded accent-[var(--semantic-success)]" />
@@ -115,28 +116,40 @@ export default function CashflowTable({ results, params }: { results: any; param
       </div>
 
       {/* Summary strip */}
-      <div className="grid grid-cols-4 gap-2 mb-3">
-        <SumPill label="Invested" value={formatINR(grandTotals.totalContributions)} />
-        <SumPill label="Returns" value={formatSignedINR(grandTotals.totalReturn)} color={grandTotals.totalReturn >= 0 ? 'var(--semantic-success)' : 'var(--semantic-danger)'} />
-        <SumPill label="Withdrawn" value={formatINR(grandTotals.totalWithdrawals)} color="var(--semantic-warning)" />
-        <SumPill label="Final" value={formatINR(finalBalance)} color={finalBalance > 0 ? undefined : 'var(--semantic-danger)'} />
+      <div className="grid grid-cols-4 gap-px bg-[var(--border-subtle)]">
+        <div className="bg-[var(--surface-card)] p-2.5">
+          <div className="text-[7px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Invested</div>
+          <div className="text-xs font-bold font-['JetBrains_Mono'] text-[var(--text-heading)]">{formatINR(grandTotals.totalContributions)}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] p-2.5">
+          <div className="text-[7px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Returns</div>
+          <div className={`text-xs font-bold font-['JetBrains_Mono'] ${grandTotals.totalReturn >= 0 ? 'text-[var(--semantic-success)]' : 'text-[var(--semantic-danger)]'}`}>{formatSignedINR(grandTotals.totalReturn)}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] p-2.5">
+          <div className="text-[7px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Withdrawn</div>
+          <div className="text-xs font-bold font-['JetBrains_Mono'] text-[var(--semantic-warning)]">{formatINR(grandTotals.totalWithdrawals)}</div>
+        </div>
+        <div className="bg-[var(--surface-card)] p-2.5">
+          <div className="text-[7px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Final</div>
+          <div className={`text-xs font-bold font-['JetBrains_Mono'] ${finalBalance > 0 ? 'text-[var(--text-heading)]' : 'text-[var(--semantic-danger)]'}`}>{formatINR(finalBalance)}</div>
+        </div>
       </div>
 
       {/* Scrollable table */}
       <div className="relative">
         {canScrollLeft && (<><div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-[var(--surface-card)] to-transparent z-10 pointer-events-none" /><button onClick={() => scrollBy(-1)} className="absolute left-0.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow flex items-center justify-center hover:bg-[var(--surface-card-alt)]"><ChevronLeft size={12} className="text-[var(--text-secondary)]" /></button></>)}
         {canScrollRight && (<><div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[var(--surface-card)] to-transparent z-10 pointer-events-none" /><button onClick={() => scrollBy(1)} className="absolute right-0.5 top-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-[var(--surface-card)] border border-[var(--border-subtle)] shadow flex items-center justify-center hover:bg-[var(--surface-card-alt)]"><ChevronRight size={12} className="text-[var(--text-secondary)]" /></button></>)}
-        <div ref={scrollRef} className="overflow-x-auto overflow-y-auto" style={{ maxHeight: '440px' }}>
+        <div ref={scrollRef} className="overflow-x-auto" style={{ maxHeight: expanded ? '400px' : '140px' }}>
           <table className="w-full text-[10px] border-collapse" style={{ minWidth: '820px' }}>
-            <thead className="sticky top-0 z-[5]">
-              <tr className="bg-[var(--surface-card-alt)]">
+            <thead className="sticky top-0 z-[5] bg-[var(--surface-card-alt)]">
+              <tr>
                 {['Age','Year','Phase','Opening','Inflows','Outflows','Returns','Closing','Δ'].map(h => (
                   <th key={h} className={`py-1.5 px-2.5 font-bold text-[var(--text-muted)] uppercase tracking-wider text-[7px] border-b border-[var(--border-default)] whitespace-nowrap ${h === 'Age' ? 'text-left sticky left-0 bg-[var(--surface-card-alt)] z-[6]' : h === 'Year' || h === 'Phase' ? 'text-left' : 'text-right'}`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visibleRows.map((row, idx) => {
+              {displayRows.map((row, idx) => {
                 const isRet = row.age === retirementAge;
                 const isDep = depletionAge && row.age === depletionAge;
                 const isAccum = row.phase === 'accumulation';
@@ -172,43 +185,30 @@ export default function CashflowTable({ results, params }: { results: any; param
                   </tr>
                 );
               })}
-
-              {showAccum && accumulationRows.length > 0 && (
-                <tr className="sticky bottom-[24px] z-[3] bg-[var(--surface-success)]/10 backdrop-blur-sm border-t border-[var(--semantic-success)]/15">
-                  <td colSpan={3} className="py-1 px-2.5 text-[7px] font-bold uppercase tracking-wider text-[var(--semantic-success)] sticky left-0 bg-[var(--surface-success)]/10 backdrop-blur-sm z-[4]">Accumulation ({accumulationRows.length}y)</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] text-[var(--text-muted)]">{formatINRShort(accumulationRows[0]?.openingBalance || 0)}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold text-[var(--semantic-success)]">{formatINRShort(accumTotals.contributions + accumTotals.lumpsum)}</td>
-                  <td className="py-1 px-2.5 text-right text-[var(--text-muted)] text-[9px]">—</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold" style={{ color: accumTotals.investmentReturn >= 0 ? 'var(--semantic-success)' : 'var(--semantic-danger)' }}>{formatSignedINR(accumTotals.investmentReturn)}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold text-[var(--text-heading)]">{formatINRShort(accumulationRows[accumulationRows.length - 1]?.closingBalance || 0)}</td>
-                  <td />
-                </tr>
-              )}
-
-              {showDrawdown && drawdownRows.length > 0 && (
-                <tr className="sticky bottom-[24px] z-[3] bg-[var(--surface-warning)]/10 backdrop-blur-sm border-t border-[var(--semantic-warning)]/15">
-                  <td colSpan={3} className="py-1 px-2.5 text-[7px] font-bold uppercase tracking-wider text-[var(--semantic-warning)] sticky left-0 bg-[var(--surface-warning)]/10 backdrop-blur-sm z-[4]">Drawdown ({drawdownRows.length}y)</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] text-[var(--text-muted)]">{formatINRShort(drawdownRows[0]?.openingBalance || 0)}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px]">{drawdownTotals.partTimeIncome > 0 ? formatINRShort(drawdownTotals.partTimeIncome) : '—'}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold text-[var(--semantic-danger)]">{formatINRShort(drawdownTotals.withdrawals)}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold" style={{ color: drawdownTotals.investmentReturn >= 0 ? 'var(--semantic-success)' : 'var(--semantic-danger)' }}>{formatSignedINR(drawdownTotals.investmentReturn)}</td>
-                  <td className="py-1 px-2.5 text-right font-['JetBrains_Mono'] text-[9px] font-bold" style={{ color: (drawdownRows[drawdownRows.length - 1]?.closingBalance || 0) > 0 ? 'var(--text-heading)' : 'var(--semantic-danger)' }}>{formatINRShort(drawdownRows[drawdownRows.length - 1]?.closingBalance || 0)}</td>
-                  <td />
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
       </div>
-    </div>
-  );
-}
 
-function SumPill({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div className="flex items-center gap-1.5 px-2 py-1.5 rounded bg-[var(--surface-card-alt)]">
-      <span className="text-[7px] font-bold uppercase tracking-wider text-[var(--text-muted)]">{label}</span>
-      <span className="text-[11px] font-bold font-['JetBrains_Mono']" style={{ color: color || 'var(--text-heading)' }}>{value}</span>
+      {/* Expand/Collapse button */}
+      <div className="border-t border-[var(--border-subtle)]">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-bold text-[var(--accent-primary)] hover:bg-[var(--surface-info)]/30 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp size={14} />
+              Show Less
+            </>
+          ) : (
+            <>
+              <ChevronDown size={14} />
+              Expand Full Cashflow ({visibleRows.length} years)
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

@@ -13,12 +13,12 @@ interface TabbedPanelProps {
 }
 
 export default function TabbedPanel({ tabs, children }: TabbedPanelProps) {
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(0); // Default to CASHFLOW (index 0)
 
   return (
-    <div>
-      {/* Tab row */}
-      <div className="flex items-center border-b border-[var(--border-subtle)]">
+    <div className="mx-4 md:mx-8 mt-6">
+      {/* Tab row - segmented control style */}
+      <div className="flex items-center bg-[var(--surface-card-alt)] rounded-xl p-1 border border-[var(--border-subtle)]">
         {tabs.map((tab, idx) => {
           const Icon = tab.icon;
           const isActive = idx === active;
@@ -26,24 +26,21 @@ export default function TabbedPanel({ tabs, children }: TabbedPanelProps) {
             <button
               key={tab.id}
               onClick={() => setActive(idx)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold uppercase tracking-wider transition-all relative ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all ${
                 isActive
-                  ? 'text-[var(--accent-primary)]'
+                  ? 'bg-[var(--surface-card)] text-[var(--accent-primary)] shadow-sm'
                   : 'text-[var(--text-muted)] hover:text-[var(--text-heading)]'
               }`}
             >
-              <Icon size={13} />
-              <span className="hidden sm:inline">{tab.label}</span>
-              {isActive && (
-                <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[var(--accent-primary)] rounded-t-full" />
-              )}
+              <Icon size={14} />
+              {tab.label}
             </button>
           );
         })}
       </div>
 
       {/* Tab content */}
-      <div className="pt-4">
+      <div className="mt-4">
         {children[active]}
       </div>
     </div>
